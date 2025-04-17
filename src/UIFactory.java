@@ -1,0 +1,34 @@
+// UIFactory.java
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.layout.*;
+
+public class UIFactory {
+    public static Button createStyledButton(String text) {
+        Button btn = new Button(text);
+        btn.setStyle("-fx-background-color: #008080; -fx-text-fill: white;");
+        return btn;
+    }
+
+    public static GridPane createGridPane(int padding) {
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(padding));
+        return grid;
+    }
+
+    public static HBox createHBox(Node... nodes) {
+        HBox box = new HBox(10, nodes);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
+    }
+
+    public static VBox createVBox(Node... nodes) {
+        VBox box = new VBox(10, nodes);
+        box.setPadding(new Insets(20));
+        return box;
+    }
+}
