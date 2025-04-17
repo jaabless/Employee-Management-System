@@ -188,6 +188,7 @@ public class DialogFactory {
                 dialog.showAndWait().ifPresent(updated -> {
                     AppState.database.updateEmployeeDetails(updated);
                     AppState.refreshTable();
+                    tableView.refresh();
                 });
 
             } catch (NumberFormatException ex) {
@@ -272,9 +273,10 @@ public class DialogFactory {
                     filtered = AppState.database.searchBySalaryRange(min, max);
                 }
 
-                // Update the table
-                tableView.setItems(FXCollections.observableArrayList(filtered));
-                tableView.refresh();
+                // Update the observable list with the filtered results
+                AppState.observableList.setAll(filtered); // Update list
+                AppState.tableView.refresh(); // Refresh the table
+
                 dialog.close();
 
             } catch (NumberFormatException ex) {
@@ -287,10 +289,15 @@ public class DialogFactory {
         dialog.showAndWait();
     }
 
+
     public static void showResetDialog() {
-        tableView.setItems(FXCollections.observableArrayList(AppState.database.getAllEmployees()));
-        tableView.refresh(); // Force visual update
+        // Reset the observable list with all employees from the database
+        AppState.observableList.setAll(AppState.database.getAllEmployees());
+
+        // Refresh the table to reflect the updates
+        AppState.tableView.refresh();  // Force visual update
     }
+
 
     public static void showAverageDialog() {
         Dialog<Void> dialog = new Dialog<>();
@@ -365,12 +372,14 @@ public class DialogFactory {
                 double threshold = Double.parseDouble(rate);
                 double increment = Double.parseDouble(incrementNum);
 
+                // Apply the raise
                 AppState.database.giveRaise(threshold, increment);
 
+                // Update the observable list with the latest data
+                AppState.observableList.setAll(AppState.database.getAllEmployees());
+
                 // Refresh the table
-                tableView.setItems(FXCollections.observableArrayList(AppState.database.getAllEmployees()));
-                refreshTable();
-                tableView.refresh();
+                AppState.tableView.refresh();
 
                 dialog.close(); // manually close the dialog
 
@@ -385,6 +394,7 @@ public class DialogFactory {
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         dialog.showAndWait();
     }
+
 
     public static void showTopPaidDialog() {
         List<Employee<Integer>> topEmployees = AppState.database.getTopPaid();
