@@ -110,7 +110,10 @@ public class EmployeeManagementAppFX extends Application {
         Button sortPerformanceBtn = createStyledButton("Sort by Performance");
         sortPerformanceBtn.setOnAction(e -> showSortByPerfomance());
 
-        HBox buttonBox = new HBox(10, advancedFilterBtn, resetBtn,averageBtn,getTop5,raiseBtn,sortPerformanceBtn);
+        Button sortSalaryBtn = createStyledButton("Sort by Salary");
+        sortSalaryBtn.setOnAction(e -> showSortSalary());
+
+        HBox buttonBox = new HBox(10, advancedFilterBtn, resetBtn,averageBtn,getTop5,raiseBtn,sortPerformanceBtn,sortSalaryBtn);
         buttonBox.setAlignment(Pos.CENTER_LEFT);
 
         tableView.getColumns().addAll(idCol, nameCol, deptCol, salaryCol, ratingCol, expCol, activeCol);
@@ -463,6 +466,11 @@ public class EmployeeManagementAppFX extends Application {
 
     private void showSortByPerfomance() {
         List<Employee<Integer>> sorted = database.sortByPerformance();
+        tableView.getItems().setAll(sorted);
+    }
+
+    private void showSortSalary() {
+        List<Employee<Integer>> sorted = database.sortBySalary();
         tableView.getItems().setAll(sorted);
     }
 

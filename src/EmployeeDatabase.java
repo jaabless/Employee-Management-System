@@ -58,6 +58,10 @@ public class EmployeeDatabase<T> {
         return employeeMap.values().stream().sorted(new EmployeePerformanceComparator<>()).collect(Collectors.toList());
     }
 
+    public List<Employee<T>> sortBySalary() {
+        return employeeMap.values().stream().sorted(new EmployeeSalaryComparator<>()).collect(Collectors.toList());
+    }
+
     public void giveRaise(double threshold, double increment) {
         employeeMap.values().forEach(emp -> {
             if (emp.getPerformanceRating() >= threshold) {
@@ -90,9 +94,7 @@ public class EmployeeDatabase<T> {
         return employeeMap.values().stream().sorted().collect(Collectors.toList());
     }
 
-    public List<Employee<T>> sortBySalary() {
-        return employeeMap.values().stream().sorted(new EmployeeSalaryComparator<>()).collect(Collectors.toList());
-    }
+
     public Iterator<Employee<T>> iterator() {
         return employeeMap.values().iterator();
     }
