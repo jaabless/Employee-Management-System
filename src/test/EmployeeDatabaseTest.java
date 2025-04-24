@@ -44,7 +44,6 @@ public class EmployeeDatabaseTest {
         assertThrows(EmployeeNotFoundException.class, () -> database.getEmployeeById(1));
         assertEquals(1, database.getAllEmployees().size());
     }
-
     @Test
     public void testGetEmployeeByIdThrowsWhenNotFound() {
         assertThrows(EmployeeNotFoundException.class, () -> database.getEmployeeById(999));
