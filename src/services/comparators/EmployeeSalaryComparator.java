@@ -1,3 +1,7 @@
+package services.comparators;
+
+import models.Employee;
+
 import java.util.Comparator;
 
 public class EmployeeSalaryComparator<T> implements Comparator<Employee<T>> {
