@@ -1,3 +1,5 @@
+package models;
+
 public class Employee<T> implements Comparable<Employee<T>> {
     private T employeeId;
     private String name;
