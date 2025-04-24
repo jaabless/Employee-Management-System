@@ -1,4 +1,7 @@
-// DialogFactory.java
+package ui;// DialogFactory.java
+import exceptions.EmployeeNotFoundException;
+import exceptions.InvalidDepartmentException;
+import exceptions.InvalidSalaryException;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.application.Application;
@@ -9,6 +12,8 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.collections.*;
 import javafx.geometry.*;
+import models.Employee;
+import state.AppState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +24,7 @@ public class DialogFactory {
 
     public static HBox createTopControls() {
         TextField searchField = new TextField();
-        searchField.setPromptText("Search...");
+        searchField.setPromptText("Search Here...");
 
         ComboBox<String> searchTypeCombo = new ComboBox<>();
         searchTypeCombo.getItems().addAll("ID", "Name", "Department");
@@ -48,23 +53,51 @@ public class DialogFactory {
     }
 
     public static void handleSearch(String query, String type) {
+        if (query == null || query.trim().isEmpty()) {
+            // If search field is empty, reset to full list
+//            AppState.refreshTable();
+            AlertUtils.showError("Please enter an ID, Name or Department");
+            return;
+        }
+
         ObservableList<Employee<Integer>> filteredList = FXCollections.observableArrayList();
+
         switch (type) {
             case "ID":
                 try {
-                    int id = Integer.parseInt(query);
+                    int id = Integer.parseInt(query.trim());
                     Employee<Integer> emp = AppState.database.getEmployeeById(id);
                     if (emp != null) filteredList.add(emp);
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException e) {
+                    AlertUtils.showError("ID must be a number.");
+                    return;
+                }catch (EmployeeNotFoundException e) {
+                    AlertUtils.showError(e.getMessage());
+                    return;
+                }
                 break;
             case "Name":
-                filteredList.addAll(AppState.database.searchByName(query));
+                List<Employee<Integer>> nameResults = AppState.database.searchByName(query.trim());
+                if (nameResults.isEmpty()) {
+                    AlertUtils.showError("No employee found with the given name.");
+                    return;
+                }
+                filteredList.addAll(nameResults);
                 break;
             case "Department":
-                filteredList.addAll(AppState.database.searchByDepartment(query));
+                try {
+                    List<Employee<Integer>> deptResults = AppState.database.searchByDepartment(query.trim());
+                    filteredList.addAll(deptResults);
+                } catch (InvalidDepartmentException e) {
+                    AlertUtils.showError(e.getMessage());
+                    return;
+                }
                 break;
+            default:
+                AlertUtils.showError("Unknown search type.");
+                return;
         }
-        tableView.setItems(filteredList);
+        AppState.observableList.setAll(filteredList); // This makes sure the TableView gets the update
     }
 
     public static void handleAction(String actionType) {
@@ -106,18 +139,39 @@ public class DialogFactory {
 
         dialog.setResultConverter(button -> {
             if (button == addBtnType) {
+                // Check for empty fields
+                if (idField.getText().trim().isEmpty() ||
+                        nameField.getText().trim().isEmpty() ||
+                        deptField.getText().trim().isEmpty() ||
+                        salaryField.getText().trim().isEmpty() ||
+                        ratingField.getText().trim().isEmpty() ||
+                        experienceField.getText().trim().isEmpty()) {
+
+                    AlertUtils.showError("All fields are required. Please fill in all fields.");
+                    return null;
+                }
+
                 try {
-                    int id = Integer.parseInt(idField.getText());
-                    String name = nameField.getText();
-                    String dept = deptField.getText();
-                    double salary = Double.parseDouble(salaryField.getText());
-                    double rating = Double.parseDouble(ratingField.getText());
-                    int exp = Integer.parseInt(experienceField.getText());
+                    int id = Integer.parseInt(idField.getText().trim());
+                    String name = nameField.getText().trim();
+                    String dept = deptField.getText().trim();
+                    double salary = Double.parseDouble(salaryField.getText().trim());
+                    double rating = Double.parseDouble(ratingField.getText().trim());
+                    int exp = Integer.parseInt(experienceField.getText().trim());
                     boolean active = activeCheck.isSelected();
 
+                    if (salary < 0) {
+                        throw new InvalidSalaryException("Salary cannot be negative.");
+                    }
                     return new Employee<>(id, name, dept, salary, rating, exp, active);
+                } catch (NumberFormatException ex) {
+                    AlertUtils.showError("Please enter valid numeric values for ID, Salary, Rating, and Experience.");
+                } catch (InvalidSalaryException ex) {
+                    AlertUtils.showError(ex.getMessage());
                 } catch (Exception ex) {
-                    AlertUtils.showError("Invalid input. Please fill all fields correctly.");
+                    AlertUtils.showError("Something went wrong. Please check your input.");
+                } finally {
+                    dialog.close();
                 }
             }
             return null;
@@ -137,26 +191,18 @@ public class DialogFactory {
         idDialog.showAndWait().ifPresent(idStr -> {
             try {
                 int id = Integer.parseInt(idStr);
-                Employee<Integer> emp = AppState.database.getEmployeeById(id);
-                if (emp == null) {
-                    AlertUtils.showError("Employee not found.");
-                    return;
-                }
+                Employee<Integer> employeeData = AppState.database.getEmployeeById(id);
 
                 Dialog<Employee<Integer>> dialog = new Dialog<>();
                 dialog.setTitle("Update Employee");
-
-                GridPane grid = new GridPane();
-                grid.setHgap(10); grid.setVgap(10);
-                grid.setPadding(new Insets(20));
-
-                TextField nameField = new TextField(emp.getName());
-                TextField deptField = new TextField(emp.getDepartment());
-                TextField salaryField = new TextField(String.valueOf(emp.getSalary()));
-                TextField ratingField = new TextField(String.valueOf(emp.getPerformanceRating()));
-                TextField expField = new TextField(String.valueOf(emp.getYearsOfExperience()));
+                GridPane grid = UIFactory.createGridPane(20);
+                TextField nameField = new TextField(employeeData.getName());
+                TextField deptField = new TextField(employeeData.getDepartment());
+                TextField salaryField = new TextField(String.valueOf(employeeData.getSalary()));
+                TextField ratingField = new TextField(String.valueOf(employeeData.getPerformanceRating()));
+                TextField expField = new TextField(String.valueOf(employeeData.getYearsOfExperience()));
                 CheckBox activeBox = new CheckBox("Active");
-                activeBox.setSelected(emp.isActive());
+                activeBox.setSelected(employeeData.isActive());
 
                 grid.add(new Label("Name:"), 0, 0); grid.add(nameField, 1, 0);
                 grid.add(new Label("Department:"), 0, 1); grid.add(deptField, 1, 1);
@@ -171,15 +217,23 @@ public class DialogFactory {
                 dialog.setResultConverter(button -> {
                     if (button == ButtonType.OK) {
                         try {
-                            emp.setName(nameField.getText());
-                            emp.setDepartment(deptField.getText());
-                            emp.setSalary(Double.parseDouble(salaryField.getText()));
-                            emp.setPerformanceRating(Double.parseDouble(ratingField.getText()));
-                            emp.setYearsOfExperience(Integer.parseInt(expField.getText()));
-                            emp.setActive(activeBox.isSelected());
-                            return emp;
-                        } catch (Exception ex) {
-                            AlertUtils.showError("Invalid input.");
+                            employeeData.setName(nameField.getText());
+                            employeeData.setDepartment(deptField.getText());
+                            employeeData.setSalary(Double.parseDouble(salaryField.getText()));
+                            employeeData.setPerformanceRating(Double.parseDouble(ratingField.getText()));
+                            employeeData.setYearsOfExperience(Integer.parseInt(expField.getText()));
+                            employeeData.setActive(activeBox.isSelected());
+
+                            if (Double.parseDouble(salaryField.getText()) < 0) {
+                                throw new InvalidSalaryException("Salary cannot be negative.");
+                            }
+                            return employeeData;
+                        } catch (NumberFormatException ex) {
+                            AlertUtils.showError("Please enter valid numeric values.");
+                        } catch (InvalidSalaryException ex) {
+                            AlertUtils.showError(ex.getMessage());
+                        } finally {
+                            dialog.close();
                         }
                     }
                     return null;
@@ -192,7 +246,9 @@ public class DialogFactory {
                 });
 
             } catch (NumberFormatException ex) {
-                AlertUtils.showError("Invalid ID.");
+                AlertUtils.showError("Invalid ID");
+            } catch (EmployeeNotFoundException ex) {
+                AlertUtils.showError(ex.getMessage());
             }
         });
     }
@@ -201,30 +257,24 @@ public class DialogFactory {
         TextInputDialog idDialog = new TextInputDialog();
         idDialog.setTitle("Delete Employee");
         idDialog.setHeaderText("Enter Employee ID to delete:");
-
         idDialog.showAndWait().ifPresent(idStr -> {
             try {
                 int id = Integer.parseInt(idStr);
-                Employee<Integer> emp = AppState.database.getEmployeeById(id);
-                if (emp == null) {
-                    AlertUtils.showError("Employee not found.");
-                    return;
+                Employee<Integer> emp = AppState.database.getEmployeeById(id); // May throw EmployeeNotFoundException
+                boolean confirmed = AlertUtils.showConfirmation(
+                        "Confirm Deletion",
+                        "Are you sure you want to delete this employee?\n"+emp.toString()
+                );
+                if (confirmed) {
+                    AppState.database.removeEmployee(id);
+                    AppState.refreshTable();
                 }
-
-                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                confirm.setTitle("Confirm Deletion");
-                confirm.setHeaderText("Are you sure you want to delete this employee?");
-                confirm.setContentText(emp.toString());
-
-                confirm.showAndWait().ifPresent(response -> {
-                    if (response == ButtonType.OK) {
-                        AppState.database.removeEmployee(id);
-                        AppState.refreshTable();
-                    }
-                });
-
             } catch (NumberFormatException ex) {
-                AlertUtils.showError("Invalid ID input.");
+                AlertUtils.showError("Invalid ID.");
+            } catch (EmployeeNotFoundException ex) {
+                AlertUtils.showError(ex.getMessage());
+            } finally {
+                idDialog.getEditor().clear();  // Clear input for re-entry
             }
         });
     }
@@ -289,7 +339,6 @@ public class DialogFactory {
         dialog.showAndWait();
     }
 
-
     public static void showResetDialog() {
         // Reset the observable list with all employees from the database
         AppState.observableList.setAll(AppState.database.getAllEmployees());
@@ -297,7 +346,6 @@ public class DialogFactory {
         // Refresh the table to reflect the updates
         AppState.tableView.refresh();  // Force visual update
     }
-
 
     public static void showAverageDialog() {
         Dialog<Void> dialog = new Dialog<>();
@@ -341,7 +389,6 @@ public class DialogFactory {
         dialog.showAndWait();
     }
 
-
     public static void showGiveRaiseDialog() {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Give Raise");
@@ -360,8 +407,8 @@ public class DialogFactory {
         Button applyBtn = UIFactory.createStyledButton("Apply");
 
         applyBtn.setOnAction(e -> {
-            String rate = ratingField.getText();
-            String incrementNum = incrementField.getText();
+            String rate = ratingField.getText().trim();
+            String incrementNum = incrementField.getText().trim();
 
             if (rate.isEmpty() || incrementNum.isEmpty()) {
                 AlertUtils.showError("All fields are required.");
@@ -380,14 +427,12 @@ public class DialogFactory {
 
                 // Refresh the table
                 AppState.tableView.refresh();
-
-                dialog.close(); // manually close the dialog
-
             } catch (NumberFormatException ex) {
                 AlertUtils.showError("Please enter valid numeric values.");
+            }finally {
+                dialog.close();  // ensure dialog is closed even if an error occurred
             }
         });
-
         // Add button to grid or layout
         grid.add(applyBtn, 1, 2);
         dialog.getDialogPane().setContent(grid);
@@ -395,21 +440,17 @@ public class DialogFactory {
         dialog.showAndWait();
     }
 
-
     public static void showTopPaidDialog() {
         List<Employee<Integer>> topEmployees = AppState.database.getTopPaid();
-        tableView.getItems().setAll(topEmployees);
-        tableView.refresh(); // ensure visual update
+        AppState.observableList.setAll(topEmployees);
+        AppState.tableView.refresh();
     }
 
     public static void showSortByPerfomance() {
         List<Employee<Integer>> sorted = AppState.database.sortByPerformance();
-        tableView.getItems().setAll(sorted);
-        tableView.refresh(); // ensure visual update
+        AppState.observableList.setAll(sorted);
+        AppState.tableView.refresh();
     }
-
-
-
 
     public static void refreshTable() {
         tableView.setItems(FXCollections.observableArrayList(AppState.database.getAllEmployees()));
