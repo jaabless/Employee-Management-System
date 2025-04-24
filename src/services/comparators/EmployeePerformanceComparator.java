@@ -1,4 +1,6 @@
-// EmployeePerformanceComparator.java
+package services.comparators;// EmployeePerformanceComparator.java
+import models.Employee;
+
 import java.util.Comparator;
 
 public class EmployeePerformanceComparator<T> implements Comparator<Employee<T>> {
