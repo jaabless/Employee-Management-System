@@ -1,3 +1,14 @@
+package services;
+
+import exceptions.EmployeeNotFoundException;
+import exceptions.InvalidDepartmentException;
+import models.Employee;
+import services.comparators.EmployeePerformanceComparator;
+import services.comparators.EmployeeSalaryComparator;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -15,14 +26,13 @@ public class EmployeeDatabase<T> {
     public boolean updateEmployeeDetails(Employee<T> updatedEmployee) {
         Employee<T> existing = employeeMap.get(updatedEmployee.getEmployeeId());
         if (existing == null) return false;
-
         existing.setName(updatedEmployee.getName());
         existing.setDepartment(updatedEmployee.getDepartment());
         existing.setSalary(updatedEmployee.getSalary());
+//        existing.setSalary(updatedEmployee.getSalary()*10); //bug - multiplies salary by 10
         existing.setPerformanceRating(updatedEmployee.getPerformanceRating());
         existing.setYearsOfExperience(updatedEmployee.getYearsOfExperience());
         existing.setActive(updatedEmployee.isActive());
-
         return true;
     }
 
@@ -36,11 +46,17 @@ public class EmployeeDatabase<T> {
                 .collect(Collectors.toList());
     }
 
-    public List<Employee<T>> searchByDepartment(String dept) {
-        return employeeMap.values().stream()
-                .filter(emp -> emp.getDepartment().equalsIgnoreCase(dept))
+    public List<Employee<T>> searchByDepartment(String department) throws InvalidDepartmentException {
+        List<Employee<T>> results = employeeMap.values().stream()
+                .filter(emp -> emp.getDepartment().equalsIgnoreCase(department))
                 .collect(Collectors.toList());
+
+        if (results.isEmpty()) {
+            throw new InvalidDepartmentException("No employee found in the given department.");
+        }
+        return results;
     }
+
 
     public List<Employee<T>> searchByPerformance(double rating) {
         return employeeMap.values().stream()
@@ -84,11 +100,13 @@ public class EmployeeDatabase<T> {
                 .average().orElse(0.0);
     }
 
-    public Employee<T> getEmployeeById(T id) {
-        return employeeMap.get(id);
+    public Employee<T> getEmployeeById(T id) throws EmployeeNotFoundException {
+        Employee<T> employee = employeeMap.get(id);
+        if (employee == null) {
+            throw new EmployeeNotFoundException("Employee with ID " + id + " not found.");
+        }
+        return employee;
     }
-
-
 
     public List<Employee<T>> sortByExperience() {
         return employeeMap.values().stream().sorted().collect(Collectors.toList());
