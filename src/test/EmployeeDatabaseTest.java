@@ -32,7 +32,7 @@ public class EmployeeDatabaseTest {
 
     @Test
     public void testSearchByDepartment() throws InvalidDepartmentException {
-        List<Employee<Integer>> results = database.searchByDepartment("CR");
+        List<Employee<Integer>> results = database.searchByDepartment("HR");
         assertNotNull(results);
         assertEquals(1, results.size());
         assertEquals("Sandra", results.get(0).getName());
